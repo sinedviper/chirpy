@@ -12,6 +12,7 @@ import (
 	"github.com/sinedviper/chirpy/internal/database"
 	"github.com/sinedviper/chirpy/internal/middleware"
 	"github.com/sinedviper/chirpy/internal/users"
+	"github.com/sinedviper/chirpy/internal/webhooks"
 )
 
 import (
@@ -32,6 +33,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	publicKey := os.Getenv("PUBLIC_KEY")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -55,6 +57,9 @@ func main() {
 		Addr:    ":8080",
 		Handler: mux,
 	}
+
+	// WEBHOOK
+	mux.Handle("POST /api/polka/webhooks", cfg.middleware.AuthenticationWebhook(cfg.middleware.Inc(webhooks.HandleChirpyUpgrade(cfg.queries)), polkaKey))
 
 	// SITE
 	mux.Handle("/", cfg.middleware.Inc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))))

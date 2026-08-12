@@ -74,6 +74,7 @@ func HandleLogin(queries *database.Queries, publicSecret string) http.HandlerFun
 			Email:        findUser.Email.String,
 			Token:        token,
 			RefreshToken: createRefresh.Token,
+			IsChirpyRed:  findUser.IsChirpyRed,
 		})
 	}
 }

@@ -45,3 +45,20 @@ func (m *Middleware) Authentication(next http.Handler, publicSecret string) http
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+func (m *Middleware) AuthenticationWebhook(next http.Handler, apiSecret string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, errToken := auth.GetAPIKey(r.Header)
+		if errToken != nil {
+			response.WriteError(w, errToken, 401, "Token not found")
+			return
+		}
+
+		if token != apiSecret {
+			response.WriteError(w, nil, 401, "Invalid API key")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

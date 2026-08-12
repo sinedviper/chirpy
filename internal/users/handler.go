@@ -42,10 +42,11 @@ func HandleCreate(queries *database.Queries) http.HandlerFunc {
 		}
 
 		response.WriteJSON(w, 201, UserResponse{
-			ID:        userCreate.ID.String(),
-			CreatedAt: userCreate.CreatedAt,
-			UpdatedAt: userCreate.UpdatedAt,
-			Email:     userCreate.Email.String,
+			ID:          userCreate.ID.String(),
+			CreatedAt:   userCreate.CreatedAt,
+			UpdatedAt:   userCreate.UpdatedAt,
+			Email:       userCreate.Email.String,
+			IsChirpyRed: userCreate.IsChirpyRed,
 		})
 	}
 }
@@ -96,10 +97,11 @@ func HandlePut(queries *database.Queries) http.HandlerFunc {
 		}
 
 		response.WriteJSON(w, 200, UserResponse{
-			ID:        findUser.ID.String(),
-			CreatedAt: findUser.CreatedAt,
-			UpdatedAt: findUser.UpdatedAt,
-			Email:     findUser.Email.String,
+			ID:          findUser.ID.String(),
+			CreatedAt:   findUser.CreatedAt,
+			UpdatedAt:   findUser.UpdatedAt,
+			Email:       findUser.Email.String,
+			IsChirpyRed: findUser.IsChirpyRed,
 		})
 	}
 }

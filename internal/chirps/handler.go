@@ -69,10 +69,38 @@ func HandleCreate(queries *database.Queries) http.HandlerFunc {
 
 func HandleGetAll(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		getChirps, errGetChirps := queries.GetChirps(r.Context())
-		if errGetChirps != nil {
-			response.WriteError(w, errGetChirps, 404, "Can't get chirps")
-			return
+		authorIDStr := r.URL.Query().Get("author_id")
+		sortStr := r.URL.Query().Get("sort")
+
+		sort := "asc"
+		var getChirps []database.Chirp
+
+		if sortStr != "" {
+			if sortStr == "asc" || sortStr == "desc" {
+				sort = sortStr
+			}
+		}
+
+		if authorIDStr != "" {
+			authorID, err := uuid.Parse(authorIDStr)
+			if err != nil {
+				response.WriteError(w, err, 400, "Invalid author_id")
+				return
+			}
+			getChirpsByAuthor, errGetChirps := queries.GetChirpsByAuthor(r.Context(), database.GetChirpsByAuthorParams{UserID: uuid.NullUUID{UUID: authorID, Valid: true}, SortDirection: sort})
+			if errGetChirps != nil {
+				response.WriteError(w, errGetChirps, 404, "Can't get chirps")
+				return
+			}
+			getChirps = getChirpsByAuthor
+		} else {
+			getChirpsAll, errGetChirps := queries.GetChirps(r.Context(), sort)
+			if errGetChirps != nil {
+				response.WriteError(w, errGetChirps, 404, "Can't get chirps")
+				return
+			}
+
+			getChirps = getChirpsAll
 		}
 
 		var respBody []ChirpResponse
