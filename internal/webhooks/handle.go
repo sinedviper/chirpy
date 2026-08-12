@@ -9,6 +9,18 @@ import (
 	"github.com/sinedviper/chirpy/internal/response"
 )
 
+// HandleChirpyUpgrade godoc
+// @Summary      Polka webhook
+// @Description  Handles Polka's "user.upgraded" event to mark a user as Chirpy Red. Other events are ignored
+// @Tags         webhooks
+// @Accept       json
+// @Param        request body WebhookChirpyRequest true "Webhook payload"
+// @Security     ApiKeyAuth
+// @Success      204 "No Content"
+// @Failure      400 {object} response.Error "Invalid user_id"
+// @Failure      404 {object} response.Error "User not found"
+// @Failure      500 {object} response.Error
+// @Router       /api/polka/webhooks [post]
 func HandleChirpyUpgrade(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req WebhookChirpyRequest

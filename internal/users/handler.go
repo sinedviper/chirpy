@@ -11,6 +11,16 @@ import (
 	"github.com/sinedviper/chirpy/internal/response"
 )
 
+// HandleCreate godoc
+// @Summary      Create a user
+// @Description  Registers a new user with an email and password
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateRequest true "New user"
+// @Success      201 {object} UserResponse
+// @Failure      500 {object} response.Error
+// @Router       /api/users [post]
 func HandleCreate(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateRequest
@@ -51,6 +61,18 @@ func HandleCreate(queries *database.Queries) http.HandlerFunc {
 	}
 }
 
+// HandlePut godoc
+// @Summary      Update the authenticated user
+// @Description  Updates the email/password of the currently authenticated user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request body PutRequest true "Updated user fields"
+// @Security     BearerAuth
+// @Success      200 {object} UserResponse
+// @Failure      404 {object} response.Error "User not found"
+// @Failure      500 {object} response.Error
+// @Router       /api/users [put]
 func HandlePut(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value("userID").(uuid.UUID)

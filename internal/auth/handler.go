@@ -13,6 +13,17 @@ import (
 
 const expiresAccess = time.Duration(60*60) * time.Second // 1 h
 
+// HandleLogin godoc
+// @Summary      Log in
+// @Description  Authenticates a user by email/password and returns a JWT access token plus a refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body LoginRequest true "Login credentials"
+// @Success      200 {object} LoginResponse
+// @Failure      401 {object} response.Error "Incorrect email or password"
+// @Failure      500 {object} response.Error
+// @Router       /api/login [post]
 func HandleLogin(queries *database.Queries, publicSecret string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
@@ -79,6 +90,15 @@ func HandleLogin(queries *database.Queries, publicSecret string) http.HandlerFun
 	}
 }
 
+// HandleRefresh godoc
+// @Summary      Refresh access token
+// @Description  Exchanges a valid, non-revoked refresh token for a new JWT access token
+// @Tags         auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} RefreshTokenResponse
+// @Failure      401 {object} response.Error "Token missing, expired or revoked"
+// @Router       /api/refresh [post]
 func HandleRefresh(queries *database.Queries, tokenSecret string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token, errToken := GetBearerToken(r.Header)
@@ -110,6 +130,15 @@ func HandleRefresh(queries *database.Queries, tokenSecret string) http.HandlerFu
 	}
 }
 
+// HandleRevoke godoc
+// @Summary      Revoke refresh token
+// @Description  Revokes the given refresh token so it can no longer be used
+// @Tags         auth
+// @Security     BearerAuth
+// @Success      204 "No Content"
+// @Failure      403 {object} response.Error "Token missing"
+// @Failure      404 {object} response.Error "Token not found"
+// @Router       /api/revoke [post]
 func HandleRevoke(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token, errToken := GetBearerToken(r.Header)

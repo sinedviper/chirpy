@@ -6,6 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	_ "github.com/sinedviper/chirpy/docs"
 	"github.com/sinedviper/chirpy/internal/admin"
 	"github.com/sinedviper/chirpy/internal/auth"
 	"github.com/sinedviper/chirpy/internal/chirps"
@@ -13,6 +14,7 @@ import (
 	"github.com/sinedviper/chirpy/internal/middleware"
 	"github.com/sinedviper/chirpy/internal/users"
 	"github.com/sinedviper/chirpy/internal/webhooks"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 import (
@@ -25,6 +27,19 @@ type apiConfig struct {
 	queries    *database.Queries
 }
 
+// @title           Chirpy API
+// @version         1.0
+// @description     Twitter-like microblogging API built with Go, PostgreSQL and sqlc.
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT access token, format: "Bearer {token}"
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @description Polka webhook key, format: "ApiKey {key}"
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env:", err)
@@ -57,6 +72,9 @@ func main() {
 		Addr:    ":8080",
 		Handler: mux,
 	}
+
+	// SWAGGER
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	// WEBHOOK
 	mux.Handle("POST /api/polka/webhooks", cfg.middleware.AuthenticationWebhook(cfg.middleware.Inc(webhooks.HandleChirpyUpgrade(cfg.queries)), polkaKey))

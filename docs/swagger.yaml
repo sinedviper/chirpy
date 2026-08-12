@@ -1,0 +1,443 @@
+basePath: /
+definitions:
+  auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  auth.LoginResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_chirpy_red:
+        type: boolean
+      refresh_token:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  auth.RefreshTokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  chirps.ChirpResponse:
+    properties:
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  chirps.CreateRequest:
+    properties:
+      body:
+        type: string
+      user_id:
+        type: string
+    type: object
+  response.Error:
+    properties:
+      error:
+        type: string
+    type: object
+  users.CreateRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  users.PutRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  users.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_chirpy_red:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  webhooks.WebhookChirpyRequest:
+    properties:
+      data:
+        $ref: '#/definitions/webhooks.webhookChirpyData'
+      event:
+        type: string
+    type: object
+  webhooks.webhookChirpyData:
+    properties:
+      user_id:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Twitter-like microblogging API built with Go, PostgreSQL and sqlc.
+  title: Chirpy API
+  version: "1.0"
+paths:
+  /admin/metrics:
+    get:
+      description: Returns an HTML page showing how many times the server has been
+        hit
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML page
+          schema:
+            type: string
+      summary: Hit counter
+      tags:
+      - admin
+  /admin/reset:
+    post:
+      description: Resets the hit counter and deletes all users. Only available when
+        PLATFORM=dev
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: 'Hits: N'
+          schema:
+            type: string
+        "403":
+          description: Not running in dev mode
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Reset app state
+      tags:
+      - admin
+  /api/chirps:
+    get:
+      description: Lists all chirps, optionally filtered by author and sorted by creation
+        date
+      parameters:
+      - description: Filter by author UUID
+        in: query
+        name: author_id
+        type: string
+      - description: 'Sort direction: asc (default) or desc'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/chirps.ChirpResponse'
+            type: array
+        "400":
+          description: Invalid author_id
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Can't get chirps
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: List chirps
+      tags:
+      - chirps
+    post:
+      consumes:
+      - application/json
+      description: Creates a new chirp (max 140 chars) for the authenticated user,
+        filtering out profanity
+      parameters:
+      - description: Chirp body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chirps.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/chirps.ChirpResponse'
+        "400":
+          description: Chirp too long
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - BearerAuth: []
+      summary: Create a chirp
+      tags:
+      - chirps
+  /api/chirps/{chirpID}:
+    delete:
+      description: Deletes a chirp. Only the chirp's author may delete it
+      parameters:
+      - description: Chirp UUID
+        in: path
+        name: chirpID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid chirpID
+          schema:
+            $ref: '#/definitions/response.Error'
+        "403":
+          description: Not the chirp's author
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: User or chirp not found
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - BearerAuth: []
+      summary: Delete a chirp
+      tags:
+      - chirps
+    get:
+      description: Returns a single chirp by ID
+      parameters:
+      - description: Chirp UUID
+        in: path
+        name: chirpID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/chirps.ChirpResponse'
+        "400":
+          description: Invalid chirpID
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Get a chirp
+      tags:
+      - chirps
+  /api/healthz:
+    get:
+      description: Returns OK if the server is up
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health check
+      tags:
+      - health
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user by email/password and returns a JWT access
+        token plus a refresh token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.LoginResponse'
+        "401":
+          description: Incorrect email or password
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Log in
+      tags:
+      - auth
+  /api/polka/webhooks:
+    post:
+      consumes:
+      - application/json
+      description: Handles Polka's "user.upgraded" event to mark a user as Chirpy
+        Red. Other events are ignored
+      parameters:
+      - description: Webhook payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/webhooks.WebhookChirpyRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid user_id
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Polka webhook
+      tags:
+      - webhooks
+  /api/refresh:
+    post:
+      description: Exchanges a valid, non-revoked refresh token for a new JWT access
+        token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.RefreshTokenResponse'
+        "401":
+          description: Token missing, expired or revoked
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - BearerAuth: []
+      summary: Refresh access token
+      tags:
+      - auth
+  /api/revoke:
+    post:
+      description: Revokes the given refresh token so it can no longer be used
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Token missing
+          schema:
+            $ref: '#/definitions/response.Error'
+        "404":
+          description: Token not found
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - BearerAuth: []
+      summary: Revoke refresh token
+      tags:
+      - auth
+  /api/users:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with an email and password
+      parameters:
+      - description: New user
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Create a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Updates the email/password of the currently authenticated user
+      parameters:
+      - description: Updated user fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.PutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.UserResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/response.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Error'
+      security:
+      - BearerAuth: []
+      summary: Update the authenticated user
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Polka webhook key, format: "ApiKey {key}"'
+    in: header
+    name: Authorization
+    type: apiKey
+  BearerAuth:
+    description: 'JWT access token, format: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

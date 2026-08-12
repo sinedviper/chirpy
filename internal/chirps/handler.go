@@ -10,6 +10,19 @@ import (
 	"github.com/sinedviper/chirpy/internal/response"
 )
 
+// HandleCreate godoc
+// @Summary      Create a chirp
+// @Description  Creates a new chirp (max 140 chars) for the authenticated user, filtering out profanity
+// @Tags         chirps
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateRequest true "Chirp body"
+// @Security     BearerAuth
+// @Success      201 {object} ChirpResponse
+// @Failure      400 {object} response.Error "Chirp too long"
+// @Failure      404 {object} response.Error "User not found"
+// @Failure      500 {object} response.Error
+// @Router       /api/chirps [post]
 func HandleCreate(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateRequest
@@ -67,6 +80,17 @@ func HandleCreate(queries *database.Queries) http.HandlerFunc {
 	}
 }
 
+// HandleGetAll godoc
+// @Summary      List chirps
+// @Description  Lists all chirps, optionally filtered by author and sorted by creation date
+// @Tags         chirps
+// @Produce      json
+// @Param        author_id query string false "Filter by author UUID"
+// @Param        sort      query string false "Sort direction: asc (default) or desc"
+// @Success      200 {array} ChirpResponse
+// @Failure      400 {object} response.Error "Invalid author_id"
+// @Failure      404 {object} response.Error "Can't get chirps"
+// @Router       /api/chirps [get]
 func HandleGetAll(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authorIDStr := r.URL.Query().Get("author_id")
@@ -119,6 +143,16 @@ func HandleGetAll(queries *database.Queries) http.HandlerFunc {
 	}
 }
 
+// HandleGetOne godoc
+// @Summary      Get a chirp
+// @Description  Returns a single chirp by ID
+// @Tags         chirps
+// @Produce      json
+// @Param        chirpID path string true "Chirp UUID"
+// @Success      200 {object} ChirpResponse
+// @Failure      400 {object} response.Error "Invalid chirpID"
+// @Failure      404 {object} response.Error "Not found"
+// @Router       /api/chirps/{chirpID} [get]
 func HandleGetOne(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chirpID, err := uuid.Parse(r.PathValue("chirpID"))
@@ -143,6 +177,17 @@ func HandleGetOne(queries *database.Queries) http.HandlerFunc {
 	}
 }
 
+// HandleDelete godoc
+// @Summary      Delete a chirp
+// @Description  Deletes a chirp. Only the chirp's author may delete it
+// @Tags         chirps
+// @Param        chirpID path string true "Chirp UUID"
+// @Security     BearerAuth
+// @Success      204 "No Content"
+// @Failure      400 {object} response.Error "Invalid chirpID"
+// @Failure      403 {object} response.Error "Not the chirp's author"
+// @Failure      404 {object} response.Error "User or chirp not found"
+// @Router       /api/chirps/{chirpID} [delete]
 func HandleDelete(queries *database.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chirpID, err := uuid.Parse(r.PathValue("chirpID"))
